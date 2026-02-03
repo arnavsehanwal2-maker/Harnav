@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Crazy Gaming Hub</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {background:#0b0b0b;color:#fff;margin:0;font-family:Segoe UI,Arial,sans-serif}
+header{text-align:center;padding:20px;font-size:2.5em;text-shadow:0 0 15px #00ffcc}
+.controls{display:flex;justify-content:center;gap:15px;padding:20px;flex-wrap:wrap}
+.controls input,.controls select{padding:10px;font-size:16px;border-radius:6px;border:none}
+.game-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:25px;padding:25px}
+.game-card{background:#000;border-radius:14px;overflow:hidden;border:2px solid transparent;transition:.3s}
+.game-card:hover{border-color:#00ffcc;transform:scale(1.04)}
+.game-card h2{text-align:center;color:#ffcc00;padding:10px;font-size:1.2em}
+.thumbnail{position:relative;cursor:pointer}
+.thumbnail img{width:100%}
+.play-btn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:60px;background:rgba(0,0,0,.5);color:#00ffcc}
+iframe{width:100%;height:420px;border:none}
+#loader{text-align:center;padding:30px;color:#00ffcc}
+</style>
+</head>
+<body>
+<header>🎮 Crazy Gaming Hub 🎮</header>
+
+<div class="controls">
+<input type="text" id="search" placeholder="Search games...">
+<select id="category">
+<option value="all">All Categories</option>
+<option value="action">Action</option>
+<option value="casual">Casual</option>
+<option value="arcade">Arcade</option>
+<option value="survival">Survival</option>
+</select>
+</div>
+
+<div class="game-grid" id="grid"></div>
+<div id="loader">Loading more games...</div>
+
+<script>
+let offset=0, limit=4, loading=false, finished=false;
+const grid=document.getElementById("grid");
+const loader=document.getElementById("loader");
+const searchInput=document.getElementById("search");
+const categorySelect=document.getElementById("category");
+
+async function loadGames(reset=false){
+  if(loading||finished) return;
+  loading=true;
+  if(reset){offset=0;finished=false;grid.innerHTML="";}
+  const res=await fetch(`/api/games?search=${searchInput.value}&category=${categorySelect.value}&offset=${offset}&limit=${limit}`);
+  const data=await res.json();
+  data.games.forEach(game=>{
+    const card=document.createElement("div");
+    card.className="game-card";
+    card.innerHTML=`<h2>${game.title}</h2>
+    <div class="thumbnail">
+      <img src="${game.thumbnail}">
+      <div class="play-btn">▶</div>
+    </div>`;
+    card.querySelector(".thumbnail").onclick=()=>{card.querySelector(".thumbnail").outerHTML=`<iframe src="${game.url}" loading="lazy"></iframe>`};
+    grid.appendChild(card);
+  });
+  offset+=data.games.length;
+  if(offset>=data.total||data.games.length===0){finished=true;loader.style.display="none";}else{loader.style.display="block";}
+  loading=false;
+}
+
+searchInput.oninput=()=>loadGames(true);
+categorySelect.onchange=()=>loadGames(true);
+
+window.addEventListener("scroll",()=>{
+  if(window.innerHeight+window.scrollY>document.body.offsetHeight-200){loadGames();}
+});
+
+loadGames();
+</script>
+</body>
+</html>
